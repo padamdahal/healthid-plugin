@@ -1,0 +1,2 @@
+import{j as e}from"./index-DD6C6hGG.js";const i=()=>e.jsx("div",{className:classes.container,children:e.jsx(DataQuery,{query,children:({error:n,loading:r,data:s})=>n?e.jsx("span",{children:"ERROR"}):r?e.jsx("span",{children:"..."}):e.jsxs(e.Fragment,{children:[e.jsx("h1",{children:i18n.t("Hello {{name}}",{name:s.me.name})}),e.jsx("p",{children:" Hello world"}),e.jsx("h3",{children:i18n.t("Welcome to DHIS2!")})]})})});export{i as default};
+//# sourceMappingURL=App-Bzf1DlOe.js.map

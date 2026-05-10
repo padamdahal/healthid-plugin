@@ -1,0 +1,11 @@
+{
+  "name": "healthid-plugin",
+  "title": "Health ID Plugin",
+  "description": "A plugin for doing Health ID Lookups in the Capture app",
+  "type": "app",
+  "version": "1.0.0",
+  "entryPoints": {
+    "app": "index.html",
+    "plugin": "plugin.html"
+  }
+}
