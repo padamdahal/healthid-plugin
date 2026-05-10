@@ -1,9 +1,18 @@
 import React from 'react';
-import { Button } from '@dhis2/ui';
+import { useState, useEffect } from 'react'
+import { Button, Input } from '@dhis2/ui';
 import { IFormFieldPluginProps } from './Plugin.types';
+import { Config } from 'tailwindcss';
 
-const fetchExternalData = async () => {
-    const response = await fetch('https://randomuser.me/api?inc=gender,name,dob&seed=1')
+/*const fetchDatastoreConfig = async () => {
+    const response = await fetch('/ephc/api/dataStore/healthidconnect/config')
+    const config = await response.json()
+    return config
+}*/
+
+const fetchExternalData = async (enteredId:string, idType:string, config:Config) => {
+    console.log(config.identifiers[idType])
+    const response = await fetch(`https://randomuser.me/api?inc=gender,name,dob&seed=${enteredId}`)
     const data = await response.json()
     return data
 }
@@ -13,8 +22,47 @@ const Plugin = ({
     fieldsMetadata,
     setFieldValue
 }: IFormFieldPluginProps) => {
+    
+    interface Identifier {
+        label: string
+        system: string
+    }
+
+    interface Config {
+        password: string
+        username: string
+        identifier: string
+        fhirBaseUrl: string
+        identifiers: Record<string, Identifier>
+    }
+    const [config, setConfig] = useState<Config | null>(null)
+    const [fhirBaseUrl, setFhirBaseUrl] = useState<string>(null)
+    
+    const [enteredId, setEnteredId] = useState("");
+    const [idType, setIdType] = useState<string>('')
+    const [loading, setLoading] = useState<boolean>(true)
+    const [error, setError] = useState<string | null>(null)
+    
+    useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const response = await fetch('/ephc/api/dataStore/healthidconnect/config')
+                const data = await response.json()
+                setConfig(data)
+                setFhirBaseUrl(data.fhirBaseUrl);
+            } catch (err) {
+                setError('Failed to fetch configs')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchConfig()
+    }, [])
+
     const fetchAndPopulate = async () => {
-        const data = await fetchExternalData()
+        //const enteredId = values["nationalId"]
+        console.log(selected)
+        const data = await fetchExternalData(enteredId, selected, config)
 
         setFieldValue({
             fieldId: 'firstName',
@@ -24,6 +72,11 @@ const Plugin = ({
         setFieldValue({
             fieldId: 'lastName',
             value: data.results[0].name.last,
+        });
+
+        setFieldValue({
+            fieldId: 'dob',
+            value: data.results[0].dob.date,
         });
     };
 
@@ -35,6 +88,26 @@ const Plugin = ({
                 <pre>
                     {JSON.stringify(values, null, 2)}
                 </pre>
+                <div>
+                    {config && Object.entries(config.identifiers).map(([key, identifier]) => (
+                        <div key={key}>
+                            <input
+                                type="radio"
+                                id={key}
+                                value={key}
+                                checked={idType === key}
+                                onChange={(e) => setIdType(e.target.value)}
+                            />
+                            <label htmlFor={key}>{identifier.label}</label>
+                        </div>
+                    ))}
+                    <Input
+                        type="text"
+                        placeholder="Enter National ID"
+                        value={enteredId}
+                        onChange={({ value }) => setEnteredId(value)}
+                    />
+                </div>
                 <Button onClick={fetchAndPopulate}>
                     Search | खोज्नुहोस
                 </Button>
