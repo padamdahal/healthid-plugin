@@ -1,31 +1,22 @@
-import './tailwind.css';
-import './index.css';
-import React from "react";
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {IDataEntryPluginProps} from "./Plugin.types";
-import {ExternalSourceForm} from "./Components/ExternalSourceForm";
+import React from 'react';
+import { IFormFieldPluginProps } from './Plugin.types';
 
-const queryClient = new QueryClient();
-const PluginInner = (propsFromParent: IDataEntryPluginProps) => {
-    const { setFieldValue } = propsFromParent;
-
+const Plugin = ({
+    values,
+    fieldsMetadata,
+}: IFormFieldPluginProps) => {
     return (
-        <QueryClientProvider
-            client={queryClient}
-        >
-            <div
-                className={'bg-white w-lvw flex'}
-            >
-                <div
-                    className={'w-full'}
-                >
-                    <ExternalSourceForm
-                        setFieldValue={setFieldValue}
-                    />
-                </div>
+        <div style={{ padding: 10, backgroundColor: 'lightblue' }}>
+            <h1>Plugin</h1>
+
+
+            <div style={{ padding: 10, border: '1px solid black' }}>
+                <pre>
+                    {JSON.stringify(values, null, 2)}
+                </pre>
             </div>
-        </QueryClientProvider>
+        </div>
     )
 }
 
-export default PluginInner;
+export default Plugin

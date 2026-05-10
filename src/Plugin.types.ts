@@ -1,4 +1,3 @@
-
 type fieldsMetadata = {
     id: string;
     name: string;
@@ -35,12 +34,13 @@ type SetContextFieldValueProps = {
     options?: FieldValueOptions,
 }
 
-export type IDataEntryPluginProps = {
+export type IFormFieldPluginProps = {
     values: Record<string, any>;
     errors: Record<string, string[]>;
     warnings: Record<string, string[]>;
-    formSubmitted: boolean;
     fieldsMetadata: Record<string, fieldsMetadata>;
     setFieldValue: (values: SetFieldValueProps) => void;
     setContextFieldValue: (values: SetContextFieldValueProps) => void;
+    viewMode: boolean;
+    formSubmitted: boolean;
 }

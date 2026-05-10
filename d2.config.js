@@ -1,10 +1,11 @@
 const config = {
-    name: 'mock-civil-registry-plugin',
-    title: 'Mock Civil Registry Plugin',
-    description: 'A mock plugin for doing Civil Registry Lookups in the Capture app',
+    name: 'healthid-plugin',
+    title: 'Health ID Plugin',
+    description: 'A plugin for doing Health ID Lookups in the Capture app',
     type: 'app',
 
     entryPoints: {
+        app: './src/App.jsx',
         plugin: './src/Plugin.tsx'
     },
 }

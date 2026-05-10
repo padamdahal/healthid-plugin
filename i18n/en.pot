@@ -5,8 +5,14 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-03-25T16:26:34.652Z\n"
-"PO-Revision-Date: 2026-03-25T16:26:34.652Z\n"
+"POT-Creation-Date: 2026-05-10T08:07:53.586Z\n"
+"PO-Revision-Date: 2026-05-10T08:07:53.586Z\n"
+
+msgid "Hello {{name}}"
+msgstr "Hello {{name}}"
+
+msgid "Welcome to DHIS2!"
+msgstr "Welcome to DHIS2!"
 
 msgid "Patient ID is required"
 msgstr "Patient ID is required"
@@ -19,3 +25,11 @@ msgstr "Enter patient ID"
 
 msgid "Search"
 msgstr "Search"
+
+msgctxt "Application title"
+msgid "__MANIFEST_APP_TITLE"
+msgstr "Health ID Plugin"
+
+msgctxt "Application description"
+msgid "__MANIFEST_APP_DESCRIPTION"
+msgstr "A plugin for doing Health ID Lookups in the Capture app"
