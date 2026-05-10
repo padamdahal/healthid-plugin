@@ -554,19 +554,40 @@ video {
   display: none;
 }
 
-.flex {
-  display: flex;
-}
-
-.w-full {
+.container {
   width: 100%;
 }
 
-.w-lvw {
-  width: 100lvw;
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
 }
 
-.bg-white {
-  --tw-bg-opacity: 1;
-  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
+  }
+}
+
+.border {
+  border-width: 1px;
 }
