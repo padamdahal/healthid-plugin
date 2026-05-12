@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react'
-import { Button, Input } from '@dhis2/ui';
+import { Button, Input, Radio } from '@dhis2/ui';
 import { IFormFieldPluginProps } from './Plugin.types';
 import { Config } from 'tailwindcss';
 import { useSetOnlineStatusMessage } from '@dhis2/app-runtime';
@@ -14,11 +14,6 @@ const Plugin = ({
     interface Identifier {
         label: string
         system: string
-    }
-
-    interface customUrl {
-        fhirBaseUrl: string
-        authHeader: string
     }
 
     // Datastore config
@@ -138,27 +133,29 @@ const Plugin = ({
             setMessage("No match found")
         }else{
             console.log(person)
+            setMessage("Match found, loading data...")
+            setFieldValue({
+                fieldId: 'firstName',
+                value: person.firstName.split(" ")[0]
+            });
+
+            setFieldValue({
+                fieldId: 'middleName',
+                value: person.firstName.split(" ")[1]
+            });
+
+            setFieldValue({
+                fieldId: 'lastName',
+                value: person.lastName
+            });
+
+            setFieldValue({
+                fieldId: 'dob',
+                value: person.birthDate
+            });
+
+            //setMessage("")
         }
-
-        setFieldValue({
-            fieldId: 'firstName',
-            value: person.firstName.split(" ")[0]
-        });
-
-        setFieldValue({
-            fieldId: 'middleName',
-            value: person.firstName.split(" ")[1]
-        });
-
-        setFieldValue({
-            fieldId: 'lastName',
-            value: person.lastName
-        });
-
-        setFieldValue({
-            fieldId: 'dob',
-            value: person.birthDate
-        });
     };
 
     const extractPersonFromFHIR = (bundle: FHIRBundle): PersonAttributes | null => {
@@ -222,27 +219,28 @@ const Plugin = ({
                 </pre>
                 <div>
                     {config && Object.entries(config.identifiers).map(([key, identifier]) => (
-                        <span key={key}>
-                            <input
-                                type="radio"
-                                id={key}
+                        <span key={key} style={{marginRight: 10, marginBottom: 10}} >
+                            <Radio
+                                label={identifier.label}
                                 value={key}
+                                name={key}
                                 checked={idType === key}
-                                onChange={(e) => setIdType(e.target.value)}
+                                onChange={({ value }) => setIdType(value)}
                             />
-                            <label htmlFor={key}>{identifier.label}</label>
                         </span>
                     ))}
+                </div>
+                <div>
                     <Input
                         type="text"
                         placeholder="Enter ID"
                         value={enteredId}
                         onChange={({ value }) => setEnteredId(value)}
                     />
+                    <Button onClick={fetchAndPopulate}>
+                        Search | खोज्नुहोस
+                    </Button>
                 </div>
-                <Button onClick={fetchAndPopulate}>
-                    Search | खोज्नुहोस
-                </Button>
             </div>
         </div>
     )
