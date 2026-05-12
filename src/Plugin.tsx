@@ -75,6 +75,8 @@ const Plugin = ({
 
         if(data.total == 0){
             setMessage("No match found")
+        }else{
+            setMessage(JSON.stringify(data, null, 2))
         }
 
         setFieldValue({
@@ -91,8 +93,6 @@ const Plugin = ({
             fieldId: 'dob',
             value: data.results[0].dob.date.substring(0,10),
         });
-
-        setMessage(null)
     };
 
     if (loading) return <span>Loading...</span>
