@@ -76,12 +76,12 @@ const Plugin = ({
         if(data.total == 0){
             setMessage("No match found")
         }else{
-            setMessage(JSON.stringify(data, null, 2))
+            setMessage(JSON.stringify(data.entry, null, 2))
         }
 
         setFieldValue({
             fieldId: 'firstName',
-            value: data.results[0].name.first,
+            value: data.entry[0].name?.[0]?.given?.[0] || ''
         });
 
         setFieldValue({
