@@ -10,21 +10,68 @@ const Plugin = ({
     fieldsMetadata,
     setFieldValue
 }: IFormFieldPluginProps) => {
-    
+    // Identifier systems
     interface Identifier {
         label: string
         system: string
     }
 
-    interface Config {
-        password: string
-        username: string
-        identifier: string
+    interface customUrl {
         fhirBaseUrl: string
+        authHeader: string
+    }
+
+    // Datastore config
+    interface Config {
+        routeId: string
+        customUrl?:{
+            authHeader:string
+            fhirBaseUrl:string
+        }
         identifiers: Record<string, Identifier>
     }
+
+    interface FHIRName {
+        use?: string
+        family?: string
+        given?: string[]
+    }
+
+    interface FHIRIdentifier {
+        system?: string
+        value?: string
+    }
+
+    interface FHIRPerson {
+        resourceType: string
+        id?: string
+        name?: FHIRName[]
+        identifier?: FHIRIdentifier[]
+        birthDate?: string
+        gender?: string
+        telecom?: { system?: string; value?: string }[]
+        address?: { line?: string[]; city?: string; state?: string; postalCode?: string }[]
+    }
+
+    interface FHIRBundle {
+        resourceType: string
+        type: string
+        entry?: { resource: FHIRPerson }[]
+    }
+
+    interface PersonAttributes {
+        id: string
+        firstName: string
+        lastName: string
+        birthDate: string
+        gender: string
+        phone: string
+        email: string
+        address: string
+        identifiers: Record<string, string>
+    }
     const [config, setConfig] = useState<Config | null>(null)
-    const [fhirBaseUrl, setFhirBaseUrl] = useState<string>(null)
+    //const [fhirBaseUrl, setFhirBaseUrl] = useState<string>(null)
     
     const [enteredId, setEnteredId] = useState("");
     const [idType, setIdType] = useState<string>('')
@@ -39,7 +86,6 @@ const Plugin = ({
                 const response = await fetch('/ephc/api/dataStore/healthidconnect/config')
                 const data = await response.json()
                 setConfig(data)
-                setFhirBaseUrl(data.fhirBaseUrl);
             } catch (err) {
                 setError('Failed to fetch configs')
             } finally {
@@ -59,11 +105,25 @@ const Plugin = ({
         // Test
         //const response = await fetch(`https://randomuser.me/api?inc=gender,name,dob&seed=${enteredId}`)
         
-        // Datastore fhirBaseUrl - need to handle authentication
-        //const response = await fetch(`${config.fhirBaseUrl}/Patient?identifier=${config.identifiers[idType].system}|${enteredId}`)
+        var response:Record<string, any> = {}
+
+        if(config.routeId){
+            // DHIS2 routes api - priority 1
+            response = await fetch(`/ephc/api/routes/${config.routeId}/run?identifier=${config.identifiers[idType].system}|${enteredId}`)
+        }else if(config.customUrl){
+            // URL from datastore - priority 2
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                'Authorization': config.customUrl.authHeader
+            }
+            response = await fetch(
+                `${config.customUrl.fhirBaseUrl}?identifier=${config.identifiers[idType].system}|${enteredId}`,
+                { headers }
+            )
+        }else{
+            setMessage("Either routesId or fhirBaseUrl should exist.")
+        }
         
-        // DHIS2 routes api
-        const response = await fetch(`/ephc/api/routes/healthid/run?identifier=${config.identifiers[idType].system}|${enteredId}`)
         const data = await response.json()
         return data
     }
@@ -71,29 +131,83 @@ const Plugin = ({
     const fetchAndPopulate = async () => {
         setMessage("Working...")
         
-        const data = await fetchExternalData()
+        const bundle = await fetchExternalData()
+        const person = extractPersonFromFHIR(bundle)
 
-        if(data.total == 0){
+        if(bundle.total == 0){
             setMessage("No match found")
         }else{
-            setMessage(JSON.stringify(data.entry, null, 2))
+            console.log(person)
         }
 
         setFieldValue({
             fieldId: 'firstName',
-            value: data.entry[0].name?.[0]?.given?.[0] || ''
+            value: person.firstName.split(" ")[0]
+        });
+
+        setFieldValue({
+            fieldId: 'middleName',
+            value: person.firstName.split(" ")[1]
         });
 
         setFieldValue({
             fieldId: 'lastName',
-            value: data.results[0].name.last,
+            value: person.lastName
         });
 
         setFieldValue({
             fieldId: 'dob',
-            value: data.results[0].dob.date.substring(0,10),
+            value: person.birthDate
         });
     };
+
+    const extractPersonFromFHIR = (bundle: FHIRBundle): PersonAttributes | null => {
+        // Check if bundle has entries
+        if (!bundle.entry || bundle.entry.length === 0) return null
+
+        // Get the first Person resource
+        const person = bundle.entry[0].resource
+
+        // Extract name (prefer 'official' use, fallback to first)
+        const name =
+            person.name?.find((n) => n.use === 'official') ?? person.name?.[0]
+
+        // Extract telecom
+        const phone = person.telecom?.find((t) => t.system === 'phone')?.value ?? ''
+        const email = person.telecom?.find((t) => t.system === 'email')?.value ?? ''
+
+        // Extract address
+        const addr = person.address?.[0]
+        const address = [
+            addr?.line?.join(', '),
+            addr?.city,
+            addr?.state,
+            addr?.postalCode,
+        ]
+            .filter(Boolean)
+            .join(', ')
+
+        // Extract all identifiers as a map of system -> value
+        const identifiers = (person.identifier ?? []).reduce<Record<string, string>>(
+            (acc, id) => {
+                if (id.system && id.value) acc[id.system] = id.value
+                return acc
+            },
+            {}
+        )
+
+        return {
+            id: person.id ?? '',
+            firstName: name?.given?.join(' ') ?? '',
+            lastName: name?.family ?? '',
+            birthDate: person.birthDate ?? '',
+            gender: person.gender ?? '',
+            phone,
+            email,
+            address,
+            identifiers,
+        }
+    }
 
     if (loading) return <span>Loading...</span>
     if (error) return <span>{error}</span>
@@ -108,7 +222,7 @@ const Plugin = ({
                 </pre>
                 <div>
                     {config && Object.entries(config.identifiers).map(([key, identifier]) => (
-                        <div key={key}>
+                        <span key={key}>
                             <input
                                 type="radio"
                                 id={key}
@@ -117,7 +231,7 @@ const Plugin = ({
                                 onChange={(e) => setIdType(e.target.value)}
                             />
                             <label htmlFor={key}>{identifier.label}</label>
-                        </div>
+                        </span>
                     ))}
                     <Input
                         type="text"

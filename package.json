@@ -9,7 +9,7 @@
     "start": "concurrently --names \"CSS,CRP\" \"yarn start:css\" \"d2-app-scripts start\" --hide \"CSS\"",
     "start:css": "tailwindcss -o src/tailwind.css --watch",
     "test": "d2-app-scripts test",
-    "deploy": "d2-app-scripts deploy"
+    "deploy": "d2-app-scripts deploy https://ocl.hmis.gov.np/ephc --username admin"
   },
   "devDependencies": {
     "@dhis2/cli-app-scripts": "^12.11.0",
