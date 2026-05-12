@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Button, Input } from '@dhis2/ui';
 import { IFormFieldPluginProps } from './Plugin.types';
 import { Config } from 'tailwindcss';
+import { useSetOnlineStatusMessage } from '@dhis2/app-runtime';
 
 const Plugin = ({
     values,
@@ -27,6 +28,7 @@ const Plugin = ({
     
     const [enteredId, setEnteredId] = useState("");
     const [idType, setIdType] = useState<string>('')
+    const [message, setMessage] = useState<string>('')
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
     
@@ -48,7 +50,7 @@ const Plugin = ({
     }, [])
 
     const fetchExternalData = async () => {
-        
+
         //console.log(config)
         //console.log(config.identifiers[idType].system)
         //console.log(window.location.origin)
@@ -67,9 +69,13 @@ const Plugin = ({
     }
 
     const fetchAndPopulate = async () => {
-        setLoading(true)
+        setMessage("Working...")
         
         const data = await fetchExternalData()
+
+        if(data.total == 0){
+            setMessage("No match found")
+        }
 
         setFieldValue({
             fieldId: 'firstName',
@@ -86,19 +92,19 @@ const Plugin = ({
             value: data.results[0].dob.date.substring(0,10),
         });
 
-        setLoading(false)
+        setMessage(null)
     };
 
     if (loading) return <span>Loading...</span>
     if (error) return <span>{error}</span>
 
     return (
-        <div style={{ padding: 10, backgroundColor: 'lightblue' }}>
-            <h1>Plugin Test</h1>
+        <div style={{ padding: 10}}>
+            <h3>Plugin Test</h3>
 
-            <div style={{ padding: 10, border: '1px solid black' }}>
+            <div style={{ }}>
                 <pre>
-                    {/*JSON.stringify(values, null, 2)*/}
+                    {message}
                 </pre>
                 <div>
                     {config && Object.entries(config.identifiers).map(([key, identifier]) => (
