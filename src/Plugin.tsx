@@ -4,12 +4,6 @@ import { Button, Input } from '@dhis2/ui';
 import { IFormFieldPluginProps } from './Plugin.types';
 import { Config } from 'tailwindcss';
 
-/*const fetchDatastoreConfig = async () => {
-    const response = await fetch('/ephc/api/dataStore/healthidconnect/config')
-    const config = await response.json()
-    return config
-}*/
-
 const Plugin = ({
     values,
     fieldsMetadata,
@@ -54,9 +48,20 @@ const Plugin = ({
     }, [])
 
     const fetchExternalData = async () => {
-        console.log(config)
-        console.log(config.identifiers[idType].system)
-        const response = await fetch(`https://randomuser.me/api?inc=gender,name,dob&seed=${enteredId}`)
+        
+        //console.log(config)
+        //console.log(config.identifiers[idType].system)
+        //console.log(window.location.origin)
+        //console.log(window.location.pathname)
+
+        // Test
+        //const response = await fetch(`https://randomuser.me/api?inc=gender,name,dob&seed=${enteredId}`)
+        
+        // Datastore fhirBaseUrl - need to handle authentication
+        //const response = await fetch(`${config.fhirBaseUrl}/Patient?identifier=${config.identifiers[idType].system}|${enteredId}`)
+        
+        // DHIS2 routes api
+        const response = await fetch(`/ephc/api/routes/healthid/run?identifier=${config.identifiers[idType].system}|${enteredId}`)
         const data = await response.json()
         return data
     }
