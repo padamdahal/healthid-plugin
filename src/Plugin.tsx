@@ -10,13 +10,6 @@ import { Config } from 'tailwindcss';
     return config
 }*/
 
-const fetchExternalData = async (enteredId:string, idType:string, config:Config) => {
-    console.log(config.identifiers[idType])
-    const response = await fetch(`https://randomuser.me/api?inc=gender,name,dob&seed=${enteredId}`)
-    const data = await response.json()
-    return data
-}
-
 const Plugin = ({
     values,
     fieldsMetadata,
@@ -46,6 +39,7 @@ const Plugin = ({
     useEffect(() => {
         const fetchConfig = async () => {
             try {
+                setLoading(true)
                 const response = await fetch('/ephc/api/dataStore/healthidconnect/config')
                 const data = await response.json()
                 setConfig(data)
@@ -59,10 +53,18 @@ const Plugin = ({
         fetchConfig()
     }, [])
 
+    const fetchExternalData = async () => {
+        console.log(config)
+        console.log(config.identifiers[idType].system)
+        const response = await fetch(`https://randomuser.me/api?inc=gender,name,dob&seed=${enteredId}`)
+        const data = await response.json()
+        return data
+    }
+
     const fetchAndPopulate = async () => {
-        //const enteredId = values["nationalId"]
-        console.log(selected)
-        const data = await fetchExternalData(enteredId, selected, config)
+        setLoading(true)
+        
+        const data = await fetchExternalData()
 
         setFieldValue({
             fieldId: 'firstName',
@@ -76,9 +78,14 @@ const Plugin = ({
 
         setFieldValue({
             fieldId: 'dob',
-            value: data.results[0].dob.date,
+            value: data.results[0].dob.date.substring(0,10),
         });
+
+        setLoading(false)
     };
+
+    if (loading) return <span>Loading...</span>
+    if (error) return <span>{error}</span>
 
     return (
         <div style={{ padding: 10, backgroundColor: 'lightblue' }}>
@@ -86,7 +93,7 @@ const Plugin = ({
 
             <div style={{ padding: 10, border: '1px solid black' }}>
                 <pre>
-                    {JSON.stringify(values, null, 2)}
+                    {/*JSON.stringify(values, null, 2)*/}
                 </pre>
                 <div>
                     {config && Object.entries(config.identifiers).map(([key, identifier]) => (
@@ -103,7 +110,7 @@ const Plugin = ({
                     ))}
                     <Input
                         type="text"
-                        placeholder="Enter National ID"
+                        placeholder="Enter ID"
                         value={enteredId}
                         onChange={({ value }) => setEnteredId(value)}
                     />
