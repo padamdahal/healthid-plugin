@@ -78,15 +78,15 @@ const Plugin = ({
     
     useEffect(() => {
         const pathname = window.location.pathname
-        const base = '/' + pathname.split('/').filter(Boolean)[0]
-        console.log(base)
-        console.log(pathname)
-        setBasePath(base === '/api' ? '' : base)
-        console.log(basePath)
+        let base = '/' + pathname.split('/').filter(Boolean)[0]
+        if (base === '/api') base = null
+        
+        setBasePath(base)
+
         const fetchConfig = async () => {
             try {
                 setLoading(true)
-                const response = await fetch(`${basePath}/api/dataStore/healthidconnect/config`)
+                const response = await fetch(`${base}/api/dataStore/healthidconnect/config`)
                 const data = await response.json()
                 
                 setConfig(data)
