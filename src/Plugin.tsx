@@ -24,6 +24,7 @@ const Plugin = ({
             fhirBaseUrl:string
         }
         identifiers: Record<string, Identifier>
+        healthIdSystem:string
     }
 
     interface FHIRName {
@@ -127,6 +128,13 @@ const Plugin = ({
         }else{
             console.log(person)
             setMessage("Match found, data loaded...")
+
+            const healthidKey = config.healthIdSystem
+
+            setFieldValue({
+                fieldId: 'nationalId',
+                value: person.identifiers[healthidKey]
+            });
 
             setFieldValue({
                 fieldId: 'firstName',
@@ -247,7 +255,7 @@ const Plugin = ({
     }*/
 
     const clearFields = () => {
-        setFieldValue({ fieldId: "firstName", value: "" });
+        setFieldValue({ fieldId: "firstName", value: null });
         setFieldValue({ fieldId: "middleName", value: "" });
         setFieldValue({ fieldId: "lastName", value: "" });
         setFieldValue({ fieldId: "birthDate", value: "" });
