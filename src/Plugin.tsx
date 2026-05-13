@@ -81,7 +81,7 @@ const Plugin = ({
         const basePath = '/' + pathname.split('/').filter(Boolean)[0]
         console.log(basePath)
         console.log(pathname)
-        setBasePath(basePath === '/' ? '' : basePath)
+        setBasePath(basePath === '/api' ? '' : basePath)
         console.log(basePath)
         const fetchConfig = async () => {
             try {
