@@ -79,7 +79,7 @@ const Plugin = ({
     useEffect(() => {
         const pathname = window.location.pathname
         let base = '/' + pathname.split('/').filter(Boolean)[0]
-        if (base === '/api') base = null
+        if (base === '/api') base = ''
         
         setBasePath(base)
 
