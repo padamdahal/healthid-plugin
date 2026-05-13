@@ -80,7 +80,7 @@ const Plugin = ({
         const pathname = window.location.pathname
         const basePath = '/' + pathname.split('/').filter(Boolean)[0]
         setBasePath(basePath === '/' ? '' : basePath)
-
+        console.log(basePath)
         const fetchConfig = async () => {
             try {
                 setLoading(true)
