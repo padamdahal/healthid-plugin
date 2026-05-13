@@ -10,6 +10,7 @@ const Plugin = ({
     fieldsMetadata,
     setFieldValue
 }: IFormFieldPluginProps) => {
+
     // Identifier systems
     interface Identifier {
         label: string
@@ -66,8 +67,9 @@ const Plugin = ({
         address: string
         identifiers: Record<string, string>
     }
+
     const [config, setConfig] = useState<Config | null>(null)
-    //const [healthIdSystem, setHealthIdSystem] = useState<string>(null)
+    const [basePath, setBasePath] = useState<string>('')
     const [enteredId, setEnteredId] = useState("");
     const [idType, setIdType] = useState<string>('')
     const [message, setMessage] = useState<string>('')
@@ -75,10 +77,14 @@ const Plugin = ({
     const [error, setError] = useState<string | null>(null)
     
     useEffect(() => {
+        const pathname = window.location.pathname
+        const basePath = '/' + pathname.split('/').filter(Boolean)[0]
+        setBasePath(basePath === '/' ? '' : basePath)
+
         const fetchConfig = async () => {
             try {
                 setLoading(true)
-                const response = await fetch('/ephc/api/dataStore/healthidconnect/config')
+                const response = await fetch(`${basePath}/api/dataStore/healthidconnect/config`)
                 const data = await response.json()
                 
                 setConfig(data)
@@ -87,7 +93,6 @@ const Plugin = ({
                 if (!healthidKey) {
                     setError('Health ID system is not configured...')
                 }
-                //setHealthIdSystem(data.);
             } catch (err) {
                 setError('Failed to fetch config...')
             } finally {
@@ -102,7 +107,7 @@ const Plugin = ({
 
         if(config.routeId){
             // DHIS2 routes api - priority 1
-            response = await fetch(`/ephc/api/routes/${config.routeId}/run?identifier=${config.identifiers[idType].system}|${enteredId}`)
+            response = await fetch(`${basePath}/api/routes/${config.routeId}/run?identifier=${config.identifiers[idType].system}|${enteredId}`)
         }else if(config.customUrl){
             // URL from datastore - priority 2
             const headers: Record<string, string> = {
