@@ -78,10 +78,10 @@ const Plugin = ({
     
     useEffect(() => {
         const pathname = window.location.pathname
-        const basePath = '/' + pathname.split('/').filter(Boolean)[0]
-        console.log(basePath)
+        const base = '/' + pathname.split('/').filter(Boolean)[0]
+        console.log(base)
         console.log(pathname)
-        setBasePath(basePath === '/api' ? '' : basePath)
+        setBasePath(base === '/api' ? '' : base)
         console.log(basePath)
         const fetchConfig = async () => {
             try {
