@@ -2,8 +2,8 @@ import React from 'react';
 import { useState, useEffect } from 'react'
 import { Button, Input, Radio } from '@dhis2/ui';
 import { IFormFieldPluginProps } from './Plugin.types';
-import { Config } from 'tailwindcss';
-import { useSetOnlineStatusMessage } from '@dhis2/app-runtime';
+//import { Config } from 'tailwindcss';
+//import { useSetOnlineStatusMessage } from '@dhis2/app-runtime';
 
 const Plugin = ({
     values,
@@ -24,7 +24,7 @@ const Plugin = ({
             fhirBaseUrl:string
         }
         identifiers: Record<string, Identifier>
-        healthIdSystem:string
+        healthIdSystemKey:string
     }
 
     interface FHIRName {
@@ -67,8 +67,7 @@ const Plugin = ({
         identifiers: Record<string, string>
     }
     const [config, setConfig] = useState<Config | null>(null)
-    //const [fhirBaseUrl, setFhirBaseUrl] = useState<string>(null)
-    
+    //const [healthIdSystem, setHealthIdSystem] = useState<string>(null)
     const [enteredId, setEnteredId] = useState("");
     const [idType, setIdType] = useState<string>('')
     const [message, setMessage] = useState<string>('')
@@ -81,9 +80,16 @@ const Plugin = ({
                 setLoading(true)
                 const response = await fetch('/ephc/api/dataStore/healthidconnect/config')
                 const data = await response.json()
+                
                 setConfig(data)
+                
+                const healthidKey = data.healthIdSystemKey || null
+                if (!healthidKey) {
+                    setError('Health ID system is not configured...')
+                }
+                //setHealthIdSystem(data.);
             } catch (err) {
-                setError('Failed to fetch configs')
+                setError('Failed to fetch config...')
             } finally {
                 setLoading(false)
             }
@@ -117,23 +123,32 @@ const Plugin = ({
     }
 
     const fetchAndPopulate = async () => {
-        setMessage("Working...")
+        if (!idType) {
+            setMessage('Please select ID type.')
+            return
+        }
+
+        if (!enteredId) {
+            setMessage('Please enter a valid ID number of selected type.')
+            return
+        }
         
+        setMessage('Working...')
+
         const bundle = await fetchExternalData()
         const person = extractPersonFromFHIR(bundle)
 
         if(bundle.total == 0){
             setMessage("No match found")
+            console.log(values);
+            values = {}
             clearFields()
         }else{
-            console.log(person)
             setMessage("Match found, data loaded...")
-
-            const healthidKey = config.healthIdSystem
-
+            const healthIdSystemFromConfig = config.identifiers[config.healthIdSystemKey].system
             setFieldValue({
-                fieldId: 'nationalId',
-                value: person.identifiers[healthidKey]
+                fieldId: 'healthId',
+                value: person.identifiers[healthIdSystemFromConfig]
             });
 
             setFieldValue({
@@ -230,32 +245,8 @@ const Plugin = ({
         }
     }
 
-    /*const assignAge = (birthDate: string) => {
-        const birth = new Date(birthDate)
-        const today = new Date()
-
-        // Calculate differences
-        let years = today.getFullYear() - birth.getFullYear()
-        let months = today.getMonth() - birth.getMonth()
-        let days = today.getDate() - birth.getDate()
-
-        // Adjust if days is negative
-        if (days < 0) {
-            months--
-            days += new Date(today.getFullYear(), today.getMonth(), 0).getDate()
-        }
-
-        // Adjust if months is negative
-        if (months < 0) {
-            years--
-            months += 12
-        }
-
-        return { birthDate, years, months, days }
-    }*/
-
     const clearFields = () => {
-        setFieldValue({ fieldId: "firstName", value: null });
+        setFieldValue({ fieldId: "firstName", value: "" });
         setFieldValue({ fieldId: "middleName", value: "" });
         setFieldValue({ fieldId: "lastName", value: "" });
         setFieldValue({ fieldId: "birthDate", value: "" });
@@ -265,8 +256,8 @@ const Plugin = ({
         setFieldValue({ fieldId: "email", value: "" });
     };
 
-    if (loading) return <span>Loading...</span>
-    if (error) return <span>{error}</span>
+    if (loading) return <span style={{color:'#ccc', margin:'15px'}}>Loading...</span>
+    if (error) return <span style={{color:'red', margin:'15px'}}>{error}</span>
 
     return (
         <div style={{ display:'flex', flexDirection:'column', gap:'8px', padding:'15px',border:'2px solid #c5ec9e',background:'#efe',margin:'0 5px',borderRadius:'10px'  }}>
