@@ -79,6 +79,8 @@ const Plugin = ({
     useEffect(() => {
         const pathname = window.location.pathname
         const basePath = '/' + pathname.split('/').filter(Boolean)[0]
+        console.log(basePath)
+        console.log(pathname)
         setBasePath(basePath === '/' ? '' : basePath)
         console.log(basePath)
         const fetchConfig = async () => {
