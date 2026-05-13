@@ -91,15 +91,6 @@ const Plugin = ({
     }, [])
 
     const fetchExternalData = async () => {
-
-        //console.log(config)
-        //console.log(config.identifiers[idType].system)
-        //console.log(window.location.origin)
-        //console.log(window.location.pathname)
-
-        // Test
-        //const response = await fetch(`https://randomuser.me/api?inc=gender,name,dob&seed=${enteredId}`)
-        
         var response:Record<string, any> = {}
 
         if(config.routeId){
@@ -111,6 +102,7 @@ const Plugin = ({
                 'Content-Type': 'application/json',
                 'Authorization': config.customUrl.authHeader
             }
+
             response = await fetch(
                 `${config.customUrl.fhirBaseUrl}?identifier=${config.identifiers[idType].system}|${enteredId}`,
                 { headers }
@@ -131,9 +123,11 @@ const Plugin = ({
 
         if(bundle.total == 0){
             setMessage("No match found")
+            clearFields()
         }else{
             console.log(person)
-            setMessage("Match found, loading data...")
+            setMessage("Match found, data loaded...")
+
             setFieldValue({
                 fieldId: 'firstName',
                 value: person.firstName.split(" ")[0]
@@ -150,12 +144,21 @@ const Plugin = ({
             });
 
             setFieldValue({
-                fieldId: 'dob',
-                value: person.birthDate
+                fieldId: 'birthDate',
+                value: new Date(person.birthDate)
             });
 
-            //setMessage("")
+            setFieldValue({
+                fieldId: 'gender',
+                value: person.gender
+            });
+
+            
         }
+
+        setTimeout(() => {
+            setMessage('')
+        }, 5000)
     };
 
     const extractPersonFromFHIR = (bundle: FHIRBundle): PersonAttributes | null => {
@@ -206,11 +209,19 @@ const Plugin = ({
         }
     }
 
+    const clearFields = () => {
+        setFieldValue({ fieldId: "giveName", value: "" });
+        setFieldValue({ fieldId: "lastName", value: "" });
+        setFieldValue({ fieldId: "birthDate", value: "" });
+        setFieldValue({ fieldId: "phone", value: "" });
+        setFieldValue({ fieldId: "email", value: "" });
+    };
+
     if (loading) return <span>Loading...</span>
     if (error) return <span>{error}</span>
 
     return (
-        <div style={{ display:'flex', flexDirection:'column', gap:'8px', padding:'15px' }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px', padding:'15px',border:'2px solid #c5ec9e',background:'#efe',margin:'0 5px',borderRadius:'10px'  }}>
             <div style={{ display:'flex', flexDirection:'row', gap:'8px' }}>
                 Search for health ID with available ID numbers below.
             </div>
