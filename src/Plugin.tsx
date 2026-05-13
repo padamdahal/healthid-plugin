@@ -145,7 +145,7 @@ const Plugin = ({
 
             setFieldValue({
                 fieldId: 'birthDate',
-                value: new Date(person.birthDate)
+                value: {date: person.birthDate}
             });
 
             setFieldValue({
@@ -153,7 +153,20 @@ const Plugin = ({
                 value: person.gender
             });
 
-            
+            setFieldValue({
+                fieldId: 'address',
+                value: person.address
+            });
+
+            setFieldValue({
+                fieldId: 'phone',
+                value: person.phone
+            });
+
+            setFieldValue({
+                fieldId: 'email',
+                value: person.email
+            });
         }
 
         setTimeout(() => {
@@ -209,10 +222,37 @@ const Plugin = ({
         }
     }
 
+    /*const assignAge = (birthDate: string) => {
+        const birth = new Date(birthDate)
+        const today = new Date()
+
+        // Calculate differences
+        let years = today.getFullYear() - birth.getFullYear()
+        let months = today.getMonth() - birth.getMonth()
+        let days = today.getDate() - birth.getDate()
+
+        // Adjust if days is negative
+        if (days < 0) {
+            months--
+            days += new Date(today.getFullYear(), today.getMonth(), 0).getDate()
+        }
+
+        // Adjust if months is negative
+        if (months < 0) {
+            years--
+            months += 12
+        }
+
+        return { birthDate, years, months, days }
+    }*/
+
     const clearFields = () => {
-        setFieldValue({ fieldId: "giveName", value: "" });
+        setFieldValue({ fieldId: "firstName", value: "" });
+        setFieldValue({ fieldId: "middleName", value: "" });
         setFieldValue({ fieldId: "lastName", value: "" });
         setFieldValue({ fieldId: "birthDate", value: "" });
+        setFieldValue({ fieldId: "gender", value: "" });
+        setFieldValue({ fieldId: "address", value: "" });
         setFieldValue({ fieldId: "phone", value: "" });
         setFieldValue({ fieldId: "email", value: "" });
     };
