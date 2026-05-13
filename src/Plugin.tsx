@@ -145,8 +145,6 @@ const Plugin = ({
 
         if(bundle.total == 0){
             setMessage("No match found")
-            console.log(values);
-            values = {}
             clearFields()
         }else{
             setMessage("Match found, data loaded...")
