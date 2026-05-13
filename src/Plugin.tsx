@@ -210,37 +210,27 @@ const Plugin = ({
     if (error) return <span>{error}</span>
 
     return (
-        <div style={{ padding: 10}}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h3>Plugin Test</h3>
-
-            <div style={{ }}>
-                <pre>
-                    {message}
-                </pre>
-                <div>
-                    {config && Object.entries(config.identifiers).map(([key, identifier]) => (
-                        <span key={key} style={{marginRight: 10, marginBottom: 10}} >
-                            <Radio
-                                label={identifier.label}
-                                value={key}
-                                name={key}
-                                checked={idType === key}
-                                onChange={({ value }) => setIdType(value)}
-                            />
-                        </span>
-                    ))}
-                </div>
-                <div>
-                    <Input
-                        type="text"
-                        placeholder="Enter ID"
-                        value={enteredId}
+            <pre>
+                {message}
+            </pre>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
+                {config && Object.entries(config.identifiers).map(([key, identifier]) => (
+                    <React.Fragment key={key}>
+                        <Radio label={identifier.label} value={key} name={key} checked={idType === key}
+                            onChange={({ value }) => setIdType(value)}
+                        />
+                    </React.Fragment>
+                ))}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
+                    <Input type="text" placeholder="Enter ID" value={enteredId}
                         onChange={({ value }) => setEnteredId(value)}
                     />
                     <Button onClick={fetchAndPopulate}>
                         Search | खोज्नुहोस
                     </Button>
-                </div>
             </div>
         </div>
     )
