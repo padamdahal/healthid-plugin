@@ -210,11 +210,10 @@ const Plugin = ({
     if (error) return <span>{error}</span>
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <h3>Plugin Test</h3>
-            <pre>
-                {message}
-            </pre>
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px', padding:'15px' }}>
+            <div style={{ display:'flex', flexDirection:'row', gap:'8px' }}>
+                Search for health ID with available ID numbers below.
+            </div>
             <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
                 {config && Object.entries(config.identifiers).map(([key, identifier]) => (
                     <React.Fragment key={key}>
@@ -228,9 +227,10 @@ const Plugin = ({
                     <Input type="text" placeholder="Enter ID" value={enteredId}
                         onChange={({ value }) => setEnteredId(value)}
                     />
-                    <Button onClick={fetchAndPopulate}>
-                        Search | खोज्नुहोस
-                    </Button>
+                    <Button onClick={fetchAndPopulate}> खोज्नुहोस </Button>
+            </div>
+            <div style={{ display:'flex', flexDirection:'row', gap:'8px' }}>
+                {message}
             </div>
         </div>
     )
