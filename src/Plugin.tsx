@@ -106,35 +106,97 @@ const Plugin = ({
         fetchConfig()
     }, [])
 
+    const convertToFHIRBundle = (
+        data: Record<string, any>,
+        fhirMap: Record<string, string>,
+        identifierSystem: string
+    ): any => {
+
+        // Resolve a value from raw data using JS expression
+        const resolve = (expr: string): string => {
+            if (!expr) return ''
+            try {
+                // eslint-disable-next-line no-new-func
+                const fn = new Function('data', `try { return data.${expr} } catch(e) { return '' }`)
+                const result = fn(data)
+                return result !== undefined && result !== null ? String(result) : ''
+            } catch {
+                return ''
+            }
+        }
+
+        // Build FHIR Person resource
+        const person: any = {
+            resourceType: 'Person',
+            name: [{
+                use: 'official',
+                given: [resolve(fhirMap['name.given'])],
+                family: resolve(fhirMap['name.family'])
+            }],
+            gender: resolve(fhirMap['gender']),
+            birthDate: resolve(fhirMap['birthDate']),
+            telecom: [],
+            identifier: [],
+            address: []
+        }
+
+        // Phone
+        const phone = resolve(fhirMap['telecom.phone'])
+        if (phone) person.telecom.push({ system: 'phone', value: phone })
+
+        // Email
+        const email = resolve(fhirMap['telecom.email'])
+        if (email) person.telecom.push({ system: 'email', value: email })
+
+        // Identifier
+        const idValue = resolve(fhirMap['identifier'])
+        if (idValue) person.identifier.push({ system: identifierSystem, value: idValue })
+
+        // Address
+        const city   = resolve(fhirMap['address.city'])
+        const state  = resolve(fhirMap['address.state'])
+        const line   = resolve(fhirMap['address.line'])
+        if (city || state || line) {
+            person.address.push({
+                line: line ? [line] : [],
+                city,
+                state
+            })
+        }
+
+        // Wrap in a FHIR Bundle so extractPersonFromFHIR works unchanged
+        return {
+            resourceType: 'Bundle',
+            type: 'searchset',
+            total: 1,
+            entry: [{ resource: person }]
+        }
+    }
+
     const fetchExternalData = async () => {
         var response:Record<string, any> = {}
         
-        console.log(config)
-
         if(config.identifiers[idType].routeId){
             // DHIS2 routes api - priority 1
             const fetchUrl = `${basePath}/api/routes/${config.identifiers[idType].routeId}/run?${config.identifiers[idType].queryString}`
                 .replaceAll("{system}", config.identifiers[idType].system)
                 .replaceAll("{id}", enteredId)
             response = await fetch(fetchUrl)
-
         }else if(config.identifiers[idType].baseUrl){
             // baseUrl from config - priority 2
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
                 'Authorization': config.identifiers[idType].authHeader
             }
-
             const fetchUrl = `${config.identifiers[idType].baseUrl}?${config.identifiers[idType].queryString}`
                 .replaceAll("{system}", config.identifiers[idType].system)
                 .replaceAll("{id}", enteredId)
-
             response = await fetch(fetchUrl, { headers })
         }else{
             setMessage("Either routesId or fhirBaseUrl should exist.")
         }
         
-        const data = await response.json()
+        const data = await response.json()    
         return data
     }
 
@@ -151,10 +213,30 @@ const Plugin = ({
         
         setMessage('Working...')
 
-        const bundle = await fetchExternalData()
-        const person = extractPersonFromFHIR(bundle)
+        const rawData = await fetchExternalData()
 
-        if(bundle.total == 0){
+        var bundle: any
+
+        if (rawData.resourceType === 'Bundle') {
+            // Already FHIR — use directly
+            bundle = rawData
+        } else {
+            // Non-FHIR — convert first
+            let selectedConfig:Record<any,any> = config.identifiers[idType]
+            let fhirMap = selectedConfig['fhirMap']
+            const identifierSystem = selectedConfig.system
+
+            bundle = convertToFHIRBundle(
+                rawData,
+                fhirMap,
+                identifierSystem
+            )
+        }
+        console.log(bundle)
+
+        const person = extractPersonFromFHIR(bundle)
+        
+        if(!person){
             setMessage("No match found")
             clearFields()
         }else{
@@ -219,8 +301,7 @@ const Plugin = ({
         const person = bundle.entry[0].resource
 
         // Extract name (prefer 'official' use, fallback to first)
-        const name =
-            person.name?.find((n) => n.use === 'official') ?? person.name?.[0]
+        const name = person.name?.find((n) => n.use === 'official') ?? person.name?.[0]
 
         // Extract telecom
         const phone = person.telecom?.find((t) => t.system === 'phone')?.value ?? ''
@@ -233,17 +314,14 @@ const Plugin = ({
             addr?.city,
             addr?.state,
             addr?.postalCode,
-        ]
-            .filter(Boolean)
-            .join(', ')
+        ].filter(Boolean).join(', ')
 
         // Extract all identifiers as a map of system -> value
         const identifiers = (person.identifier ?? []).reduce<Record<string, string>>(
             (acc, id) => {
                 if (id.system && id.value) acc[id.system] = id.value
                 return acc
-            },
-            {}
+            }, {}
         )
 
         return {
