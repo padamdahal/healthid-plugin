@@ -191,10 +191,16 @@ const Plugin = ({
                 identifierSystem
             )
         }
+        if (!bundle) {
+            setMessage('No match found.')
+            clearFields()
+            return
+        }
         const person = extractPersonFromFHIR(bundle)
-        
+
         if (!person){
             setMessage('No match found')
+            clearFields()
             return
         }
 
