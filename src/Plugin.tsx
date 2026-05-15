@@ -2,8 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react'
 import { Button, Input, Radio } from '@dhis2/ui';
 import { IFormFieldPluginProps } from './Plugin.types';
-//import { Config } from 'tailwindcss';
-//import { useSetOnlineStatusMessage } from '@dhis2/app-runtime';
+import { convertToFHIRBundle, extractPersonFromFHIR } from './utils/fhirUtils';
 
 const Plugin = ({
     values,
@@ -20,52 +19,13 @@ const Plugin = ({
         "authHeader": string
         "contentType": string
         "queryString": string
+        "successAction": string
     }
 
     // Datastore config
     interface Config {
         identifiers: Record<string, Identifier>
         healthIdSystemKey:string
-    }
-
-    interface FHIRName {
-        use?: string
-        family?: string
-        given?: string[]
-    }
-
-    interface FHIRIdentifier {
-        system?: string
-        value?: string
-    }
-
-    interface FHIRPerson {
-        resourceType: string
-        id?: string
-        name?: FHIRName[]
-        identifier?: FHIRIdentifier[]
-        birthDate?: string
-        gender?: string
-        telecom?: { system?: string; value?: string }[]
-        address?: { line?: string[]; city?: string; state?: string; postalCode?: string }[]
-    }
-
-    interface FHIRBundle {
-        resourceType: string
-        type: string
-        entry?: { resource: FHIRPerson }[]
-    }
-
-    interface PersonAttributes {
-        id: string
-        firstName: string
-        lastName: string
-        birthDate: string
-        gender: string
-        phone: string
-        email: string
-        address: string
-        identifiers: Record<string, string>
     }
 
     const [config, setConfig] = useState<Config | null>(null)
@@ -75,6 +35,7 @@ const Plugin = ({
     const [message, setMessage] = useState<string>('')
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
+    const [actionLink, setActionLink] = useState<React.ReactNode>(null)
     
     useEffect(() => {
         const pathname = window.location.pathname
@@ -106,80 +67,19 @@ const Plugin = ({
         fetchConfig()
     }, [])
 
-    const convertToFHIRBundle = (
-        data: Record<string, any>,
-        fhirMap: Record<string, string>,
-        identifierSystem: string
-    ): any => {
 
-        // Resolve a value from raw data using JS expression
-        const resolve = (expr: string): string => {
-            if (!expr) return ''
-            try {
-                // eslint-disable-next-line no-new-func
-                const fn = new Function('data', `try { return data.${expr} } catch(e) { return '' }`)
-                const result = fn(data)
-                return result !== undefined && result !== null ? String(result) : ''
-            } catch {
-                return ''
-            }
-        }
-
-        // Build FHIR Person resource
-        const person: any = {
-            resourceType: 'Person',
-            name: [{
-                use: 'official',
-                given: [resolve(fhirMap['name.given'])],
-                family: resolve(fhirMap['name.family'])
-            }],
-            gender: resolve(fhirMap['gender']),
-            birthDate: resolve(fhirMap['birthDate']),
-            telecom: [],
-            identifier: [],
-            address: []
-        }
-
-        // Phone
-        const phone = resolve(fhirMap['telecom.phone'])
-        if (phone) person.telecom.push({ system: 'phone', value: phone })
-
-        // Email
-        const email = resolve(fhirMap['telecom.email'])
-        if (email) person.telecom.push({ system: 'email', value: email })
-
-        // Identifier
-        const idValue = resolve(fhirMap['identifier'])
-        if (idValue) person.identifier.push({ system: identifierSystem, value: idValue })
-
-        // Address
-        const city   = resolve(fhirMap['address.city'])
-        const state  = resolve(fhirMap['address.state'])
-        const line   = resolve(fhirMap['address.line'])
-        if (city || state || line) {
-            person.address.push({
-                line: line ? [line] : [],
-                city,
-                state
-            })
-        }
-
-        // Wrap in a FHIR Bundle so extractPersonFromFHIR works unchanged
-        return {
-            resourceType: 'Bundle',
-            type: 'searchset',
-            total: 1,
-            entry: [{ resource: person }]
-        }
-    }
 
     const fetchExternalData = async () => {
         var response:Record<string, any> = {}
-        
+        const routeId = config.identifiers[idType].routeId || null
+        const queryString = config.identifiers[idType].queryString || null
+        const idSystem = config.identifiers[idType].system || null
+        const baseUrl = config.identifiers[idType].baseUrl || null
+
         if(config.identifiers[idType].routeId){
             // DHIS2 routes api - priority 1
-            const fetchUrl = `${basePath}/api/routes/${config.identifiers[idType].routeId}/run?${config.identifiers[idType].queryString}`
-                .replaceAll("{system}", config.identifiers[idType].system)
+            const fetchUrl = `${basePath}/api/routes/${routeId}/run?${queryString}`
+                .replaceAll("{system}", idSystem)
                 .replaceAll("{id}", enteredId)
             response = await fetch(fetchUrl)
         }else if(config.identifiers[idType].baseUrl){
@@ -188,8 +88,8 @@ const Plugin = ({
                 'Content-Type': 'application/json',
                 'Authorization': config.identifiers[idType].authHeader
             }
-            const fetchUrl = `${config.identifiers[idType].baseUrl}?${config.identifiers[idType].queryString}`
-                .replaceAll("{system}", config.identifiers[idType].system)
+            const fetchUrl = `${baseUrl}?${queryString}`
+                .replaceAll("{system}", idSystem)
                 .replaceAll("{id}", enteredId)
             response = await fetch(fetchUrl, { headers })
         }else{
@@ -200,42 +100,8 @@ const Plugin = ({
         return data
     }
 
-    const fetchAndPopulate = async () => {
-        if (!idType) {
-            setMessage('Please select ID type.')
-            return
-        }
-
-        if (!enteredId) {
-            setMessage('Please enter a valid ID number of selected type.')
-            return
-        }
-        
-        setMessage('Working...')
-
-        const rawData = await fetchExternalData()
-
-        var bundle: any
-
-        if (rawData.resourceType === 'Bundle') {
-            // Already FHIR — use directly
-            bundle = rawData
-        } else {
-            // Non-FHIR — convert first
-            let selectedConfig:Record<any,any> = config.identifiers[idType]
-            let fhirMap = selectedConfig['fhirMap']
-            const identifierSystem = selectedConfig.system
-
-            bundle = convertToFHIRBundle(
-                rawData,
-                fhirMap,
-                identifierSystem
-            )
-        }
-        console.log(bundle)
-
-        const person = extractPersonFromFHIR(bundle)
-        
+    const populateAttributeFields = async (person: Record<string, any>) => {
+                
         if(!person){
             setMessage("No match found")
             clearFields()
@@ -293,47 +159,70 @@ const Plugin = ({
         }, 5000)
     };
 
-    const extractPersonFromFHIR = (bundle: FHIRBundle): PersonAttributes | null => {
-        // Check if bundle has entries
-        if (!bundle.entry || bundle.entry.length === 0) return null
+    const initialize = async () => {
+        setActionLink(null)
+        setMessage('')
 
-        // Get the first Person resource
-        const person = bundle.entry[0].resource
+        if (!idType) {
+            setMessage('Please select ID type.')
+            return
+        }
 
-        // Extract name (prefer 'official' use, fallback to first)
-        const name = person.name?.find((n) => n.use === 'official') ?? person.name?.[0]
+        if (!enteredId) {
+            setMessage('Please enter a valid ID number of selected type.')
+            return
+        }
 
-        // Extract telecom
-        const phone = person.telecom?.find((t) => t.system === 'phone')?.value ?? ''
-        const email = person.telecom?.find((t) => t.system === 'email')?.value ?? ''
+        const rawData = await fetchExternalData()
 
-        // Extract address
-        const addr = person.address?.[0]
-        const address = [
-            addr?.line?.join(', '),
-            addr?.city,
-            addr?.state,
-            addr?.postalCode,
-        ].filter(Boolean).join(', ')
+        var bundle: any
 
-        // Extract all identifiers as a map of system -> value
-        const identifiers = (person.identifier ?? []).reduce<Record<string, string>>(
-            (acc, id) => {
-                if (id.system && id.value) acc[id.system] = id.value
-                return acc
-            }, {}
-        )
+        if (rawData.resourceType === 'Bundle') {
+            bundle = rawData
+        } else {
+            // Non-FHIR — convert first
+            let selectedConfig:Record<any,any> = config.identifiers[idType]
+            let fhirMap = selectedConfig['fhirMap'] || null
+            const identifierSystem = selectedConfig.system || null
 
-        return {
-            id: person.id ?? '',
-            firstName: name?.given?.join(' ') ?? '',
-            lastName: name?.family ?? '',
-            birthDate: person.birthDate ?? '',
-            gender: person.gender ?? '',
-            phone,
-            email,
-            address,
-            identifiers,
+            bundle = convertToFHIRBundle(
+                rawData,
+                fhirMap,
+                identifierSystem
+            )
+        }
+        const person = extractPersonFromFHIR(bundle)
+
+        // Check if rawData is empty or does not contain expected information
+        //const isEmptyData = !rawData || (typeof rawData === 'object' && Object.keys(rawData).length === 0)
+        
+        if (!person) return
+
+        const successAction = config.identifiers[idType].successAction || null
+        const [actionName, actionArgs] = successAction ? successAction.split(':') : [null, null]
+
+        if (!actionName) {
+            setMessage('No action configured.')
+            return
+        }
+
+        switch (actionName?.toLowerCase()) {
+            case 'populateattributedata':
+                await populateAttributeFields(person)
+                break
+            case 'showlink':
+                const linkUrl = actionArgs || ''
+                if (linkUrl) {
+                    setActionLink(
+                        <a href={linkUrl} target="_blank" rel="noreferrer"
+                        style={{ color: '#1a6bb5', fontWeight: 600, fontSize: '13px' }}>
+                            🔗 View Dashboard
+                        </a>
+                    )
+                }
+                break
+            default:
+                setMessage('Unknown success action: ' + actionName)
         }
     }
 
@@ -369,11 +258,20 @@ const Plugin = ({
                     <Input type="text" placeholder="Enter ID" value={enteredId}
                         onChange={({ value }) => setEnteredId(value)}
                     />
-                    <Button onClick={fetchAndPopulate}> खोज्नुहोस </Button>
+                    <Button onClick={initialize}> खोज्नुहोस </Button>
             </div>
-            <div style={{ display:'flex', flexDirection:'row', gap:'8px' }}>
-                {message}
-            </div>
+
+            {message && (
+                <div style={{ display:'flex', flexDirection:'row', gap:'8px' }}>
+                    {message}
+                </div>
+            )}
+
+            {actionLink && (
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
+                    {actionLink}
+                </div>
+            )}
         </div>
     )
 }
