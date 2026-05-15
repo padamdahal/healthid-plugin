@@ -192,11 +192,11 @@ const Plugin = ({
             )
         }
         const person = extractPersonFromFHIR(bundle)
-
-        // Check if rawData is empty or does not contain expected information
-        //const isEmptyData = !rawData || (typeof rawData === 'object' && Object.keys(rawData).length === 0)
         
-        if (!person) return
+        if (!person){
+            setMessage('No match found')
+            return
+        }
 
         const successAction = config.identifiers[idType].successAction || null
         const [actionName, actionArgs] = successAction ? successAction.split(':') : [null, null]
