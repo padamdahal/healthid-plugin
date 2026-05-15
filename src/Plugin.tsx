@@ -219,6 +219,7 @@ const Plugin = ({
             case 'showlink':
                 const linkUrl = actionArgs || ''
                 if (linkUrl) {
+                    //https://ocl.hmis.gov.np/ephc/api/42/tracker/trackedEntities?filter=q3NpuWzGvso:eq:26051500021&orgUnits=wlCRZPmSBIP&orgUnitMode=SELECTED&program=kvottqqHM1j&fields=enrollments[enrollment,orgUnit,trackedEntity,program,attributes]
                     setActionLink(
                         <a href={linkUrl} target="_blank" rel="noreferrer"
                         style={{ color: '#1a6bb5', fontWeight: 600, fontSize: '13px' }}>
