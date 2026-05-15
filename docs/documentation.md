@@ -408,3 +408,41 @@ const basePath = '/' + pathname.split('/').filter(Boolean)[0]
 ---
 
 *Documentation generated for Health ID Connect Plugin v1.0*
+
+{
+    "routeId": "healthid",
+    "customUrl": {
+        "authHeader": "Basic YW1ha29tYXlhOk4zcEAxIUFwcA==",
+        "fhirBaseUrl": "https://api.amakomaya.com/Person"
+    },
+    "identifiers": {
+        "healthid": {
+            "label": "Health ID",
+            "system": "http://www.edifecs.com/personid",
+            "baseUrl": "https://api.amakomaya.com/Person",
+            "routeId": "healthid",
+            "authHeader": "Basic YW1ha29tY123vcfd3IUFwcA==",
+            "contentType": "fhir",
+            "queryString": "identifier={system}|{id}"
+        },
+        "systemid": {
+            "label": "System ID",
+            "system": "",
+            "baseUrl": "https://ocl.hmis.gov.np/ephc/api/tracker/trackedEntities",
+            "routeId": "",
+            "authHeader": "",
+            "contentType": "json",
+            "queryString": "filter=q3NpuWzGvso:eq:{id}&program=kvottqqHM1j&orgUnitMode=ACCESSIBLE"
+        },
+        "nationalid": {
+            "label": "National ID",
+            "system": "http://moha.gov.np/identifiers/national-id",
+            "baseUrl": "",
+            "routeId": "healthid",
+            "authHeader": "",
+            "contentType": "json",
+            "queryString": "identifier={system}|{id}"
+        }
+    },
+    "healthIdSystemKey": "healthid"
+}

@@ -13,17 +13,17 @@ const Plugin = ({
 
     // Identifier systems
     interface Identifier {
-        label: string
-        system: string
+        "label": string
+        "system": string
+        "baseUrl": string
+        "routeId": string
+        "authHeader": string
+        "contentType": string
+        "queryString": string
     }
 
     // Datastore config
     interface Config {
-        routeId: string
-        customUrl?:{
-            authHeader:string
-            fhirBaseUrl:string
-        }
         identifiers: Record<string, Identifier>
         healthIdSystemKey:string
     }
@@ -88,10 +88,11 @@ const Plugin = ({
                 setLoading(true)
                 const response = await fetch(`${base}/api/dataStore/healthidconnect/config`)
                 const data = await response.json()
-                
+
                 setConfig(data)
-                
+
                 const healthidKey = data.healthIdSystemKey || null
+
                 if (!healthidKey) {
                     setError('Health ID system is not configured...')
                 }
@@ -101,26 +102,34 @@ const Plugin = ({
                 setLoading(false)
             }
         }
+
         fetchConfig()
     }, [])
 
     const fetchExternalData = async () => {
         var response:Record<string, any> = {}
+        
+        console.log(config)
 
-        if(config.routeId){
+        if(config.identifiers[idType].routeId){
             // DHIS2 routes api - priority 1
-            response = await fetch(`${basePath}/api/routes/${config.routeId}/run?identifier=${config.identifiers[idType].system}|${enteredId}`)
-        }else if(config.customUrl){
-            // URL from datastore - priority 2
+            const fetchUrl = `${basePath}/api/routes/${config.identifiers[idType].routeId}/run?${config.identifiers[idType].queryString}`
+                .replaceAll("{system}", config.identifiers[idType].system)
+                .replaceAll("{id}", enteredId)
+            response = await fetch(fetchUrl)
+
+        }else if(config.identifiers[idType].baseUrl){
+            // baseUrl from config - priority 2
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
-                'Authorization': config.customUrl.authHeader
+                'Authorization': config.identifiers[idType].authHeader
             }
 
-            response = await fetch(
-                `${config.customUrl.fhirBaseUrl}?identifier=${config.identifiers[idType].system}|${enteredId}`,
-                { headers }
-            )
+            const fetchUrl = `${config.identifiers[idType].baseUrl}?${config.identifiers[idType].queryString}`
+                .replaceAll("{system}", config.identifiers[idType].system)
+                .replaceAll("{id}", enteredId)
+
+            response = await fetch(fetchUrl, { headers })
         }else{
             setMessage("Either routesId or fhirBaseUrl should exist.")
         }
