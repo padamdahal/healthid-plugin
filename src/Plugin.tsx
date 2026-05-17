@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Button, Input, Radio } from '@dhis2/ui';
 import { IFormFieldPluginProps } from './Plugin.types';
 import { convertToFHIRBundle, extractPersonFromFHIR } from './utils/fhirUtils';
+import {fetchEnrollmentBySystemId} from './utils/trackerUtils';
 
 const Plugin = ({
     values,
@@ -44,6 +45,7 @@ const Plugin = ({
         
         setBasePath(base)
 
+        // Fetch config from datastore 'healthidconnect/config'
         const fetchConfig = async () => {
             try {
                 setLoading(true)
@@ -57,20 +59,21 @@ const Plugin = ({
                 if (!healthidKey) {
                     setError('Health ID system is not configured...')
                 }
+
             } catch (err) {
-                setError('Failed to fetch config...')
+                setError("Failed to fetch config. Make sure the 'healthidconnect/config' is properly set up.")
             } finally {
                 setLoading(false)
             }
         }
 
         fetchConfig()
+
     }, [])
-
-
 
     const fetchExternalData = async () => {
         var response:Record<string, any> = {}
+
         const routeId = config.identifiers[idType].routeId || null
         const queryString = config.identifiers[idType].queryString || null
         const idSystem = config.identifiers[idType].system || null
@@ -93,7 +96,7 @@ const Plugin = ({
                 .replaceAll("{id}", enteredId)
             response = await fetch(fetchUrl, { headers })
         }else{
-            setMessage("Either routesId or fhirBaseUrl should exist.")
+            setMessage("Either routesId or baseUrl must exist.")
         }
         
         const data = await response.json()    
@@ -103,7 +106,7 @@ const Plugin = ({
     const populateAttributeFields = async (person: Record<string, any>) => {
                 
         if(!person){
-            setMessage("No match found")
+            setMessage("No match found...")
             clearFields()
         }else{
             setMessage("Match found, data loaded...")
@@ -199,7 +202,7 @@ const Plugin = ({
         const person = extractPersonFromFHIR(bundle)
 
         if (!person){
-            setMessage('No match found')
+            setMessage('No match found...')
             clearFields()
             return
         }
@@ -219,12 +222,29 @@ const Plugin = ({
             case 'showlink':
                 const linkUrl = actionArgs || ''
                 if (linkUrl) {
-                    //https://ocl.hmis.gov.np/ephc/api/42/tracker/trackedEntities?filter=q3NpuWzGvso:eq:26051500021&orgUnits=wlCRZPmSBIP&orgUnitMode=SELECTED&program=kvottqqHM1j&fields=enrollments[enrollment,orgUnit,trackedEntity,program,attributes]
+                    const enrollmentData = rawData.trackedEntities[0]
+                    
+                    //const enrollmentData = await fetchEnrollmentBySystemId(basePath, person.identifiers[config.identifiers[config.healthIdSystemKey].system], config)
+                    
+                    if(!rawData.trackedEntities[0]){
+                        setMessage('No enrollment found for this person.')
+                        return
+                    }
+
+                    linkUrl
+                        .replaceAll("{id}", enteredId)
+                        .replaceAll("{enrollmentId}", rawData.trackedEntities[0].enrollmentId)
+                        .replaceAll("{programId}", enrollmentData.programId)
+                        .replaceAll("{orgUnitId}", enrollmentData.orgUnitId)
+                        .replaceAll("{teiId}", enrollmentData.teiId)
                     setActionLink(
-                        <a href={linkUrl} target="_blank" rel="noreferrer"
-                        style={{ color: '#1a6bb5', fontWeight: 600, fontSize: '13px' }}>
-                            🔗 View Dashboard
-                        </a>
+                        <span>
+                            <span>🔗</span>
+                            <a href={linkUrl} target="_blank" rel="noreferrer"
+                            style={{ color: '#1a6bb5', fontWeight: 600, fontSize: '13px' }}>
+                                View Patient Dashboard
+                            </a>
+                        </span>
                     )
                 }
                 break
